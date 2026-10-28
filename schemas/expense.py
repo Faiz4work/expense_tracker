@@ -52,3 +52,38 @@ class ExpenseRead(BaseModel):
     version: int
     created_at: datetime
     updated_at: datetime
+
+
+class ExpenseListQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    category_id: int | None = Field(default=None, gt=0, le=MAX_ID)
+    date_from: date | None = None
+    date_to: date | None = None
+    min_amount: Decimal | None = Field(
+        default=None, ge=0, max_digits=18, decimal_places=2, allow_inf_nan=False
+    )
+    max_amount: Decimal | None = Field(
+        default=None, ge=0, max_digits=18, decimal_places=2, allow_inf_nan=False
+    )
+    currency: Currency | None = None
+    q: str | None = Field(default=None, min_length=1, max_length=200)
+    limit: int = Field(default=50, ge=1, le=100)
+    cursor: str | None = Field(default=None, min_length=1, max_length=2048)
+
+    @model_validator(mode="after")
+    def check_ranges(self):
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise ValueError("date_from must not be after date_to.")
+        if (
+            self.min_amount is not None
+            and self.max_amount is not None
+            and self.min_amount > self.max_amount
+        ):
+            raise ValueError("min_amount must not exceed max_amount.")
+        return self
+
+
+class ExpensePage(BaseModel):
+    items: list[ExpenseRead]
+    next_cursor: str | None

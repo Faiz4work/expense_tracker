@@ -1,0 +1,1251 @@
+{
+  "info": {
+    "name": "Expense Tracker - implemented API workflow",
+    "description": "Run the complete collection once in order with No environment selected. Default target is the local API. Register creates fresh synthetic credentials; later requests manage tokens, IDs, ETags, and cursors automatically. This workflow creates demo data in the application database. Unimplemented report, worker, CSV, and S3 routes are intentionally absent. Collection prepared for local verification; no live requests were run while generating it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{et_access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "et_base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "et_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_expense_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_second_expense_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_etag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_stale_etag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_next_cursor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_creation_body",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_first_page_ids",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_spent_on",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_date_from",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_date_to",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "et_second_key",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Service",
+      "item": [
+        {
+          "name": "Root",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": []
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health - liveness only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Liveness status\", function () { pm.expect(pm.response.json().status).to.equal(\"ok\"); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/health",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 - Authentication",
+      "item": [
+        {
+          "name": "Register a fresh demo account",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var suffix = pm.variables.replaceIn(\"{{$guid}}\");",
+                  "pm.collectionVariables.set(\"et_email\", \"postman+\" + suffix + \"@example.com\");",
+                  "pm.collectionVariables.set(\"et_password\", \"Demo-\" + suffix + \"!Aa1\");",
+                  "[\"et_access_token\", \"et_refresh_token\", \"et_user_id\", \"et_category_id\", \"et_expense_id\", \"et_second_expense_id\", \"et_etag\", \"et_stale_etag\", \"et_next_cursor\", \"et_creation_body\", \"et_first_page_ids\", \"et_key\", \"et_second_key\"].forEach(function (name) {",
+                  "    pm.collectionVariables.set(name, \"\");",
+                  "});",
+                  "var today = new Date();",
+                  "pm.collectionVariables.set(\"et_spent_on\", today.toISOString().slice(0, 10));",
+                  "pm.collectionVariables.set(\"et_date_from\", new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)).toISOString().slice(0, 10));",
+                  "pm.collectionVariables.set(\"et_date_to\", new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0)).toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set(\"et_user_id\", String(pm.response.json().id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/auth/register",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{et_email}}\",\n  \"password\": \"{{et_password}}\",\n  \"base_currency\": \"PKR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login and save tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Access and refresh tokens returned\", function () {",
+                  "    pm.expect(data.access_token).to.be.a(\"string\");",
+                  "    pm.expect(data.refresh_token).to.be.a(\"string\");",
+                  "    pm.expect(data.expires_in).to.equal(900);",
+                  "});",
+                  "pm.collectionVariables.set(\"et_access_token\", data.access_token);",
+                  "pm.collectionVariables.set(\"et_refresh_token\", data.refresh_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/auth/login",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{et_email}}\",\n  \"password\": \"{{et_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Current user with access token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Correct user\", function () { pm.expect(String(pm.response.json().id)).to.equal(pm.collectionVariables.get(\"et_user_id\")); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/auth/me",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Rotate refresh token and save new pair",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Refresh token rotated\", function () { pm.expect(pm.response.json().refresh_token).not.to.equal(pm.collectionVariables.get(\"et_refresh_token\")); });",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Access and refresh tokens returned\", function () {",
+                  "    pm.expect(data.access_token).to.be.a(\"string\");",
+                  "    pm.expect(data.refresh_token).to.be.a(\"string\");",
+                  "    pm.expect(data.expires_in).to.equal(900);",
+                  "});",
+                  "pm.collectionVariables.set(\"et_access_token\", data.access_token);",
+                  "pm.collectionVariables.set(\"et_refresh_token\", data.refresh_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/auth/refresh",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{et_refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3 - Categories",
+      "item": [
+        {
+          "name": "Create owned category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set(\"et_category_id\", String(pm.response.json().id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/categories",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman demo\",\n  \"monthly_budget\": \"30000.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List owned categories - metadata and budgets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Created category is listed\", function () { pm.expect(pm.response.json().some(function (item) { return String(item.id) === pm.collectionVariables.get(\"et_category_id\"); })).to.equal(true); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/categories",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 - Expenses and retry/pagination checks",
+      "item": [
+        {
+          "name": "Create expense with a fresh retry key",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"et_key\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "var data = pm.response.json();",
+                  "pm.collectionVariables.set(\"et_expense_id\", String(data.id));",
+                  "pm.collectionVariables.set(\"et_etag\", pm.response.headers.get(\"ETag\"));",
+                  "pm.collectionVariables.set(\"et_creation_body\", pm.response.text());",
+                  "pm.test(\"Initial version and exact money\", function () { pm.expect(data.version).to.equal(1); pm.expect(data.amount).to.equal(\"1200.50\"); pm.expect(pm.response.headers.get(\"ETag\")).to.equal('\"1\"'); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{et_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": {{et_category_id}},\n  \"amount\": \"1200.50\",\n  \"currency\": \"PKR\",\n  \"description\": \"Groceries\",\n  \"spent_on\": \"{{et_spent_on}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replay same key and body - same expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.test(\"Exact original response replayed\", function () { pm.expect(pm.response.text()).to.equal(pm.collectionVariables.get(\"et_creation_body\")); pm.expect(pm.response.headers.get(\"ETag\")).to.equal('\"1\"'); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{et_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": {{et_category_id}},\n  \"amount\": \"1200.50\",\n  \"currency\": \"PKR\",\n  \"description\": \"Groceries\",\n  \"spent_on\": \"{{et_spent_on}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Changed body with same key - 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "if (pm.response.code === 422) {",
+                  "pm.test(\"Changed-body error code\", function () { pm.expect(pm.response.json().error.code).to.equal(\"idempotency_key_reused\"); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{et_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": {{et_category_id}},\n  \"amount\": \"1300.00\",\n  \"currency\": \"PKR\",\n  \"description\": \"Groceries\",\n  \"spent_on\": \"{{et_spent_on}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create second expense for pagination",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"et_second_key\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set(\"et_second_expense_id\", String(pm.response.json().id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{et_second_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": {{et_category_id}},\n  \"amount\": \"1300.00\",\n  \"currency\": \"PKR\",\n  \"description\": \"Groceries second item\",\n  \"spent_on\": \"{{et_spent_on}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter and get first page",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "var page = pm.response.json();",
+                  "pm.test(\"One row and next cursor\", function () { pm.expect(page.items.length).to.equal(1); pm.expect(page.next_cursor).to.be.a(\"string\"); });",
+                  "pm.collectionVariables.set(\"et_next_cursor\", page.next_cursor || \"\");",
+                  "pm.collectionVariables.set(\"et_first_page_ids\", JSON.stringify(page.items.map(function (item) { return item.id; })));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses?category_id={{et_category_id}}&date_from={{et_date_from}}&date_to={{et_date_to}}&min_amount=1000.00&max_amount=2000.00&currency=PKR&q=groceries&limit=1",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "{{et_category_id}}"
+                },
+                {
+                  "key": "date_from",
+                  "value": "{{et_date_from}}"
+                },
+                {
+                  "key": "date_to",
+                  "value": "{{et_date_to}}"
+                },
+                {
+                  "key": "min_amount",
+                  "value": "1000.00"
+                },
+                {
+                  "key": "max_amount",
+                  "value": "2000.00"
+                },
+                {
+                  "key": "currency",
+                  "value": "PKR"
+                },
+                {
+                  "key": "q",
+                  "value": "groceries"
+                },
+                {
+                  "key": "limit",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get next page with the same filters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "var page = pm.response.json();",
+                  "var previous = JSON.parse(pm.collectionVariables.get(\"et_first_page_ids\"));",
+                  "pm.test(\"One different row and final page\", function () { pm.expect(page.items.length).to.equal(1); pm.expect(page.next_cursor).to.equal(null); pm.expect(previous.indexOf(page.items[0].id)).to.equal(-1); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses?category_id={{et_category_id}}&date_from={{et_date_from}}&date_to={{et_date_to}}&min_amount=1000.00&max_amount=2000.00&currency=PKR&q=groceries&limit=1&cursor={{et_next_cursor}}",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "{{et_category_id}}"
+                },
+                {
+                  "key": "date_from",
+                  "value": "{{et_date_from}}"
+                },
+                {
+                  "key": "date_to",
+                  "value": "{{et_date_to}}"
+                },
+                {
+                  "key": "min_amount",
+                  "value": "1000.00"
+                },
+                {
+                  "key": "max_amount",
+                  "value": "2000.00"
+                },
+                {
+                  "key": "currency",
+                  "value": "PKR"
+                },
+                {
+                  "key": "q",
+                  "value": "groceries"
+                },
+                {
+                  "key": "limit",
+                  "value": "1"
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{et_next_cursor}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get first expense and current ETag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set(\"et_etag\", pm.response.headers.get(\"ETag\"));",
+                  "pm.test(\"Correct expense\", function () { pm.expect(String(pm.response.json().id)).to.equal(pm.collectionVariables.get(\"et_expense_id\")); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses/{{et_expense_id}}",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{et_expense_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update using current If-Match",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"et_stale_etag\", pm.collectionVariables.get(\"et_etag\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set(\"et_etag\", pm.response.headers.get(\"ETag\"));",
+                  "pm.test(\"Updated version\", function () { pm.expect(pm.response.json().version).to.equal(2); pm.expect(pm.response.headers.get(\"ETag\")).to.equal('\"2\"'); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{et_etag}}"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses/{{et_expense_id}}",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{et_expense_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"1400.00\",\n  \"description\": \"Groceries updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject stale If-Match - 412",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 412\", function () { pm.response.to.have.status(412); });",
+                  "if (pm.response.code === 412) {",
+                  "pm.test(\"Version conflict\", function () { pm.expect(pm.response.json().error.code).to.equal(\"version_conflict\"); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{et_stale_etag}}"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses/{{et_expense_id}}",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{et_expense_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"This stale edit must fail\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete first expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });",
+                  "if (pm.response.code === 204) {",
+                  "pm.test(\"Empty response\", function () { pm.expect(pm.response.text()).to.equal(\"\"); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses/{{et_expense_id}}",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{et_expense_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Deleted expense returns 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "if (pm.response.code === 404) {",
+                  "pm.test(\"Not found\", function () { pm.expect(pm.response.json().error.code).to.equal(\"not_found\"); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/expenses/{{et_expense_id}}",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{et_expense_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5 - Logout",
+      "item": [
+        {
+          "name": "Revoke current refresh token and clear local session values",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });",
+                  "if (pm.response.code === 204) {",
+                  "[\"et_access_token\", \"et_refresh_token\", \"et_password\"].forEach(function (name) { pm.collectionVariables.set(name, \"\"); });",
+                  "pm.test(\"Empty logout response\", function () { pm.expect(pm.response.text()).to.equal(\"\"); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{et_base_url}}/api/v1/auth/logout",
+              "host": [
+                "{{et_base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{et_refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

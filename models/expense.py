@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Index,
     Numeric,
     String,
     Text,
@@ -49,3 +50,19 @@ class Expense(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+# The owner is an equality condition; date and ID follow the requested sort.
+Index(
+    "ix_expenses_user_spent_id",
+    Expense.user_id,
+    Expense.spent_on.desc(),
+    Expense.id.desc(),
+)
+Index(
+    "ix_expenses_user_category_spent_id",
+    Expense.user_id,
+    Expense.category_id,
+    Expense.spent_on.desc(),
+    Expense.id.desc(),
+)
