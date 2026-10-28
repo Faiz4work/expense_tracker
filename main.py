@@ -7,6 +7,8 @@ from redis.asyncio import Redis
 from starlette.exceptions import HTTPException
 
 from api.auth import router as auth_router
+from api.categories import router as categories_router
+from api.expenses import router as expenses_router
 from core.config import get_settings
 from core.errors import (
     http_error_handler,
@@ -39,6 +41,8 @@ app.add_exception_handler(HTTPException, http_error_handler)
 app.add_exception_handler(RequestValidationError, validation_error_handler)
 app.add_exception_handler(Exception, unexpected_error_handler)
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(categories_router, prefix="/api/v1")
+app.include_router(expenses_router, prefix="/api/v1")
 
 
 @app.get("/")
