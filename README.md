@@ -4,13 +4,13 @@ Async FastAPI backend for tracking expenses by category. This is a **partial ass
 
 ## Verification
 
-Latest local pytest result reported on 2026-10-29: **88 passed, 86% total coverage**, Python 3.11.15 on Windows. The focused expense suite passed 56 tests. Use the full-suite coverage number, not the focused-run percentage.
+Local pytest verification on 2026-10-29: **88 passed, 86% total coverage**, Python 3.11.15 on Windows. The focused expense suite passed 56 tests.
 
 ```powershell
 pytest
 ```
 
-The supplied Postman collection is newly prepared and still needs a local runner check. Its JSON and embedded JavaScript are checked separately from the API pytest result. Update this note after actually running it.
+**Postman verification:** The complete **20-request collection passed locally on 2026-10-29**, as confirmed by the applicant. The workflow covers all implemented routes and checks authentication, refresh rotation, categories, expense CRUD, filtering, cursor pagination, idempotent retries, stale-version rejection, and logout.
 
 ## Implemented
 
@@ -258,4 +258,4 @@ Concurrent retry, changed-body, expiry, and rollback tests cover the chosen appr
 
 ## AI assistance
 
-OpenAI Codex assisted with assessment interpretation, architecture explanations, setup review, and implementation of the initial settings/Base/Alembic setup. It supplied code guides and pytest cases for authentication, category/expense CRUD, filtering/cursors, idempotency, and concurrency checks. It also drafted this README, environment examples, and the Postman collection. The applicant copied/applied the implementation guides and ran the local migrations, manual checks, and pytest commands reported above. Reported pytest results come from the applicant’s local runs. The newly drafted Postman collection still requires its local runner check.
+OpenAI Codex assisted with assessment interpretation, architecture explanations, setup review, and implementation of the initial settings/Base/Alembic setup. It supplied code guides and pytest cases for authentication, category/expense CRUD, filtering/cursors, idempotency, and concurrency checks. It also drafted this README, environment examples, and the Postman collection. The applicant copied/applied the implementation guides and ran the local migrations, manual checks, and pytest commands reported above. Reported pytest results come from the applicant’s local runs. The applicant also successfully ran the complete 20-request Postman workflow locally.
